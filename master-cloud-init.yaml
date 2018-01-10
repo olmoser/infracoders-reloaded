@@ -1,0 +1,126 @@
+#cloud-config
+---
+hostname: ${hostname}
+manage_etc_hosts: true
+apt_update: true
+apt_upgrade: true
+packages:
+  - git
+  - jq   
+
+# add more custom users below if needed
+users:    
+- default
+- name: prometheus
+  gecos: Prometheus system user
+  inactive: true
+  system: true
+- name: consul
+  gecos: consul system user
+  inactive: true
+  system: true
+
+installprom:  
+  - &install_prom |
+    mkdir -p /opt/prometheus && chown -R prometheus:prometheus /opt/prometheus
+    mkdir /etc/prometheus && chown -R prometheus:prometheus /etc/prometheus
+    mkdir /var/lib/prometheus && chown -R prometheus:prometheus /var/lib/prometheus
+    wget -O /var/tmp/prometheus.tar.gz https://github.com/prometheus/prometheus/releases/download/v2.0.0/prometheus-2.0.0.linux-amd64.tar.gz 
+    tar xzvf /var/tmp/prometheus.tar.gz -C /opt/prometheus  --strip-components=1 && chown -R prometheus:prometheus /opt/prometheus
+    cat > /etc/prometheus/prometheus.yml <<EOF
+    global:
+      scrape_interval: 5s
+
+    scrape_configs:
+    - job_name: 'prometheus'
+      static_configs:
+      - targets: ['localhost:9090']
+
+    - job_name: 'node'
+      static_configs:
+        - targets: ['prom-node-0.prometheus.exokube.eu:9100','prom-node-1.prometheus.exokube.eu:9100']
+
+    - job_name: 'prom-boot'
+      metrics_path: "/prometheus"
+      static_configs:
+        - targets: ['prom-node-0.prometheus.exokube.eu:8080','prom-node-1.prometheus.exokube.eu:8080']
+
+    - job_name: 'prom-boot-dns'
+      metrics_path: "/prometheus"
+      dns_sd_configs:
+        - names:
+          - '_prometheus._tcp.prometheus-sd.prometheus.exokube.eu'
+
+    - job_name: 'prom-boot-consul'
+      metrics_path: "/prometheus"
+      consul_sd_configs:
+        - server: 'localhost:8500'
+
+      relabel_configs:
+      - source_labels: [__meta_consul_tags]
+        regex: .*,dev,.*
+        action: keep    
+
+    EOF
+    chown prometheus:prometheus /etc/prometheus/prometheus.yml
+    cat > /etc/systemd/system/prometheus.service <<EOF
+    [Unit]
+    Description=Prometheus
+    Wants=network-online.target
+    After=network-online.target
+
+    [Service]
+    User=prometheus
+    Group=prometheus
+    Type=simple
+    ExecStart=/opt/prometheus/prometheus \
+        --config.file /etc/prometheus/prometheus.yml \
+        --storage.tsdb.path /var/lib/prometheus/ \
+        --web.enable-admin-api
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    systemctl daemon-reload && systemctl start prometheus && systemctl enable prometheus
+    wget -O /var/tmp/grafana.deb https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_4.6.3_amd64.deb
+    apt-get install -y adduser libfontconfig
+    dpkg -i /var/tmp/grafana.deb
+    systemctl daemon-reload && systemctl start grafana && systemctl enable grafana
+    curl 'http://localhost:3000/api/datasources' \
+      -X POST \
+      -H 'Content-Type: application/json;charset=UTF-8' \
+      --data-binary \
+      '{"name":"prometheus","type":"prometheus","url":"http://localhost:9090","access":"proxy","isDefault":true}'
+
+
+    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" https://hooks.slack.com/services/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
+
+installconsul:    
+  - &install_consul |
+    wget -O /var/tmp/consul.zip https://releases.hashicorp.com/consul/1.0.2/consul_1.0.2_linux_amd64.zip
+    mkdir /opt/consul && chown -R consul:consul /opt/consul
+    unzip /var/tmp/consul.zip -d /opt/consul
+    cat > /etc/systemd/system/consul.service <<EOF
+    [Unit]
+    Description=Consul
+    Wants=network-online.target
+    After=network-online.target
+
+    [Service]
+    User=consul
+    Group=consul
+    Type=simple
+    ExecStart=/opt/consul/consul agent -dev
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    systemctl daemon-reload && systemctl start consul && systemctl enable consul
+
+runcmd:
+  - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+  - sed -i -e '/^PasswordAuthentication/s/^.*$/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - systemctl restart sshd
+  - [ sh, -c, *install_prom]
+  - touch /tmp/done  
+  

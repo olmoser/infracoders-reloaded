@@ -1,0 +1,49 @@
+#cloud-config
+---
+hostname: ${hostname}
+manage_etc_hosts: true
+apt_update: true
+apt_upgrade: true
+packages:
+  - git
+  - jq   
+  - docker.io  
+
+# add more custom users below if needed
+users:    
+- default
+- name: node_exporter
+  gecos: node_exporter system user
+  inactive: true
+  system: true
+
+installnodeexporter:  
+  - &install_node_exporter |
+    mkdir -p /opt/node_exporter && chown -R node_exporter:node_exporter /opt/node_exporter
+    wget -O /var/tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/download/v0.15.2/node_exporter-0.15.2.linux-amd64.tar.gz 
+    tar xzvf /var/tmp/node_exporter.tar.gz -C /opt/node_exporter  --strip-components=1 && chown -R node_exporter:node_exporter /opt/node_exporter
+    cat > /etc/systemd/system/node_exporter.service <<EOF
+    [Unit]
+    Description=Node Exporter
+    Wants=network-online.target
+    After=network-online.target
+
+    [Service]
+    User=node_exporter
+    Group=node_exporter
+    Type=simple
+    ExecStart=/opt/node_exporter/node_exporter
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    systemctl daemon-reload && systemctl start node_exporter && systemctl enable node_exporter
+    docker run --rm -d -p8080:8080 omoser/prom-boot
+    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" https://hooks.slack.com/services/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
+
+runcmd:
+  - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+  - sed -i -e '/^PasswordAuthentication/s/^.*$/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - systemctl restart sshd
+  - [ sh, -c, *install_node_exporter]
+  - touch /tmp/done  

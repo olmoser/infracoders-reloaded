@@ -9,6 +9,8 @@ data "template_file" "nodes" {
     index = "${count.index}"
     hostname = "prom-node-${count.index}"
 	ssh_pubkey = "${file("${var.public_key_file}")}"
+	node_exporter_version = "${var.node_exporter_version}"
+	slack_webhook = "${var.slack_webhook}"
   }
 }
 
@@ -17,6 +19,10 @@ data "template_file" "master" {
   vars {
     hostname = "prom-master-0"
 	ssh_pubkey = "${file("${var.public_key_file}")}"
+	prometheus_version = "${var.prometheus_version}"
+	consul_exporter_version = "${var.consul_version}"
+	grafana_version = "${var.grafana_version}"
+	slack_webhook = "${var.slack_webhook}"
   }
 }
 

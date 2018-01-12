@@ -2,6 +2,11 @@ variable "api_key" {}
 variable "secret_key" {}
 variable "private_key_file" {}
 variable "public_key_file" {}
+variable "prometheus_version" {}
+variable "consul_version" {}
+variable "grafana_version" {}
+variable "slack_webhook" {}
+variable "node_exporter_version" {}
 
 
 #

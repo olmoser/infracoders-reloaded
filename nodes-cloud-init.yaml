@@ -9,8 +9,8 @@ packages:
   - git
   - jq   
   - docker.io  
+  - apache2-utils
 
-# add more custom users below if needed
 users:    
 - default
 - name: node_exporter
@@ -23,6 +23,7 @@ installnodeexporter:
     mkdir -p /opt/node_exporter && chown -R node_exporter:node_exporter /opt/node_exporter
     wget -O /var/tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/download/v${node_exporter_version}/node_exporter-${node_exporter_version}.linux-amd64.tar.gz 
     tar xzvf /var/tmp/node_exporter.tar.gz -C /opt/node_exporter  --strip-components=1 && chown -R node_exporter:node_exporter /opt/node_exporter
+
     cat > /etc/systemd/system/node_exporter.service <<EOF
     [Unit]
     Description=Node Exporter
@@ -38,8 +39,28 @@ installnodeexporter:
     [Install]
     WantedBy=multi-user.target
     EOF
+
     systemctl daemon-reload && systemctl start node_exporter && systemctl enable node_exporter
-    docker run --rm -d -p8080:8080 omoser/prom-boot
+
+installpromboot:    
+  - &install_prom_boot |
+    cat > /usr/local/bin/prom-boot-dns <<EOF
+    sudo docker run \
+      -e SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=false \
+      -p 8080:8080 omoser/prom-boot
+    EOF
+
+    cat > /usr/local/bin/prom-boot-consul <<EOF
+    sudo docker run \
+      -e SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID="prom-boot-$(hostname | cut -d '-' -f2,3)"
+      -e SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME=$(hostname -f) \
+      -e SERVER_PORT=18080 \
+      -e SPRING_CLOUD_CONSUL_HOST=prom-master-0.prometheus.exokube.eu \
+      -p 18080:18080 omoser/prom-boot
+    EOF
+
+notifyslack:
+  - &notify_slack |
     curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" ${slack_webhook}
 
 runcmd:
@@ -47,4 +68,6 @@ runcmd:
   - sed -i -e '/^PasswordAuthentication/s/^.*$/PasswordAuthentication no/' /etc/ssh/sshd_config
   - systemctl restart sshd
   - [ sh, -c, *install_node_exporter]
+  - [ sh, -c, *install_prom_boot]
+  - [ sh, -c, *notify_slack]
   - touch /tmp/done  

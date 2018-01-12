@@ -1,6 +1,7 @@
 #cloud-config
 ---
 hostname: ${hostname}
+fqdn: ${hostname}.${domainname}
 manage_etc_hosts: true
 apt_update: true
 apt_upgrade: true
@@ -20,7 +21,7 @@ users:
 installnodeexporter:  
   - &install_node_exporter |
     mkdir -p /opt/node_exporter && chown -R node_exporter:node_exporter /opt/node_exporter
-    wget -O /var/tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/download/v0.15.2/node_exporter-0.15.2.linux-amd64.tar.gz 
+    wget -O /var/tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/download/v${node_exporter_version}/node_exporter-${node_exporter_version}.linux-amd64.tar.gz 
     tar xzvf /var/tmp/node_exporter.tar.gz -C /opt/node_exporter  --strip-components=1 && chown -R node_exporter:node_exporter /opt/node_exporter
     cat > /etc/systemd/system/node_exporter.service <<EOF
     [Unit]
@@ -39,7 +40,7 @@ installnodeexporter:
     EOF
     systemctl daemon-reload && systemctl start node_exporter && systemctl enable node_exporter
     docker run --rm -d -p8080:8080 omoser/prom-boot
-    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" https://hooks.slack.com/services/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
+    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" ${slack_webhook}
 
 runcmd:
   - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config

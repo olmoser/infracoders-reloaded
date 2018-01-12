@@ -1,12 +1,14 @@
 #cloud-config
 ---
 hostname: ${hostname}
+fqdn: ${hostname}.${domainname}
 manage_etc_hosts: true
 apt_update: true
 apt_upgrade: true
 packages:
   - git
   - jq   
+  - unzip  
 
 # add more custom users below if needed
 users:    
@@ -25,7 +27,7 @@ installprom:
     mkdir -p /opt/prometheus && chown -R prometheus:prometheus /opt/prometheus
     mkdir /etc/prometheus && chown -R prometheus:prometheus /etc/prometheus
     mkdir /var/lib/prometheus && chown -R prometheus:prometheus /var/lib/prometheus
-    wget -O /var/tmp/prometheus.tar.gz https://github.com/prometheus/prometheus/releases/download/v2.0.0/prometheus-2.0.0.linux-amd64.tar.gz 
+    wget -O /var/tmp/prometheus.tar.gz https://github.com/prometheus/prometheus/releases/download/v${prometheus_version}/prometheus-${prometheus_version}.linux-amd64.tar.gz 
     tar xzvf /var/tmp/prometheus.tar.gz -C /opt/prometheus  --strip-components=1 && chown -R prometheus:prometheus /opt/prometheus
     cat > /etc/prometheus/prometheus.yml <<EOF
     global:
@@ -40,11 +42,6 @@ installprom:
       static_configs:
         - targets: ['prom-node-0.prometheus.exokube.eu:9100','prom-node-1.prometheus.exokube.eu:9100']
 
-    - job_name: 'prom-boot'
-      metrics_path: "/prometheus"
-      static_configs:
-        - targets: ['prom-node-0.prometheus.exokube.eu:8080','prom-node-1.prometheus.exokube.eu:8080']
-
     - job_name: 'prom-boot-dns'
       metrics_path: "/prometheus"
       dns_sd_configs:
@@ -58,7 +55,7 @@ installprom:
 
       relabel_configs:
       - source_labels: [__meta_consul_tags]
-        regex: .*,dev,.*
+        regex: .*,prom-boot,.*
         action: keep    
 
     EOF
@@ -82,7 +79,7 @@ installprom:
     WantedBy=multi-user.target
     EOF
     systemctl daemon-reload && systemctl start prometheus && systemctl enable prometheus
-    wget -O /var/tmp/grafana.deb https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_4.6.3_amd64.deb
+    wget -O /var/tmp/grafana.deb https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_${grafana_version}_amd64.deb
     apt-get install -y adduser libfontconfig
     dpkg -i /var/tmp/grafana.deb
     systemctl daemon-reload && systemctl start grafana && systemctl enable grafana
@@ -91,9 +88,6 @@ installprom:
       -H 'Content-Type: application/json;charset=UTF-8' \
       --data-binary \
       '{"name":"prometheus","type":"prometheus","url":"http://localhost:9090","access":"proxy","isDefault":true}'
-
-
-    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" https://hooks.slack.com/services/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
 
 installconsul:    
   - &install_consul |
@@ -110,17 +104,20 @@ installconsul:
     User=consul
     Group=consul
     Type=simple
-    ExecStart=/opt/consul/consul agent -dev
+    ExecStart=/opt/consul/consul agent -dev -client 0.0.0.0 -advertise 127.0.0.1
 
     [Install]
     WantedBy=multi-user.target
     EOF
     systemctl daemon-reload && systemctl start consul && systemctl enable consul
 
+    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" ${slack_webhook}
+
 runcmd:
   - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
   - sed -i -e '/^PasswordAuthentication/s/^.*$/PasswordAuthentication no/' /etc/ssh/sshd_config
   - systemctl restart sshd
   - [ sh, -c, *install_prom]
+  - [ sh, -c, *install_consul]
   - touch /tmp/done  
   

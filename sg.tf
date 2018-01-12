@@ -10,7 +10,7 @@ resource "cloudstack_security_group_rule" "sg-prometheus-rules" {
   rule {
     cidr_list = ["0.0.0.0/0"]
     protocol  = "tcp"
-    ports     = ["22", "9090", "9093", "9100", "3000"]
+    ports     = ["22", "9090", "9093", "9100", "3000", "8080", "18080"]
   }
 
   rule {

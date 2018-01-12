@@ -7,6 +7,7 @@ variable "consul_version" {}
 variable "grafana_version" {}
 variable "slack_webhook" {}
 variable "node_exporter_version" {}
+variable "domain" {}
 
 
 #

@@ -2,12 +2,10 @@
 
 Terraform definitions for creating a simple Prometheus demo setup.
 
-Companion sources for the Infracoders Vienna II  Demo on 15/01/2018. 
-
 ## Gettings Started
 
 ### Prerequisites
-You need an Exoscale account to acquire the required API key and secret. You also need to install the [Exoscale Terraform Provider](https://github.com/exoscale/terraform-provider-exoscale).
+You need an [Exoscale](https://www.exoscale.ch/) account to acquire the required API key and secret. You also need to install the [Exoscale Terraform Provider](https://github.com/exoscale/terraform-provider-exoscale).
 
 Then, provide the values for the variables used in the terraform config via `terraform.tfvars`:
 
@@ -105,7 +103,7 @@ exoscale_domain_record.prometheus_dns_sd_records[1]: Creating...
 exoscale_domain_record.prometheus_dns_sd_records[0]: Creation complete after 0s (ID: 13199375)
 exoscale_domain_record.prometheus_dns_sd_records[1]: Creation complete after 0s (ID: 13199376)
 
-Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 12 added, 0 changed, 0 destroyed.
 
 ```
 If you setup the Slack webhook, you should receive a notification when the nodes are ready.
@@ -141,9 +139,9 @@ To enabled a differnt config, just copy the new config to `/etc/prometheus/prome
 > cp /etc/prometheus/prometheus-dns.yml
 ```
 
-to enabled DNS based SD.  Remember that you need to restart Prometheus for the changes to take effect (`systemctl restart prometheus`).
+to enabled DNS based SD.  Remember that you need to restart Prometheus for the changes to take effect (`systemctl restart prometheus`). Then, go to  `http://prom-master-0.your.domain:9090/targets` to validate the effect of the SD config change.
 
-There are also two dashboards preconfigured in Grafana. Go to `http://prom-master-0.your.domain:3000` and login with `admin/admin`. Prometheus is running on `http:////prom-master-0.your.domain:9090`,
+There are also two dashboards preconfigured in Grafana. Go to `http://prom-master-0.your.domain:3000` and login with `admin/admin`. Prometheus is running on `http://prom-master-0.your.domain:9090`,
 and the `prom-boot` services on `8080` for DNS and `18080` for Consul based SD.
 
 

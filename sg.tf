@@ -1,7 +1,7 @@
 
 resource "cloudstack_security_group" "sg-prometheus" {
   name = "sg-prometheus"
-  description = "the prometheus host/jump box for the prometheus infra"
+  description = "rules for the infracoders prometheus demo"
 }
 
 resource "cloudstack_security_group_rule" "sg-prometheus-rules" {

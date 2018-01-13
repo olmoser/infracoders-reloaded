@@ -26,8 +26,8 @@ installprom:
   - &install_prom |
     mkdir -p /opt/prometheus && chown -R prometheus:prometheus /opt/prometheus
     mkdir /etc/prometheus && chown -R prometheus:prometheus /etc/prometheus
-    for config in "prometheus-static.yml prometheus-dns.yml prometheus-consul.yml"; do
-      wget -O /etc/\$config https://raw.githubusercontent.com/olmoser/infracoders-reloaded/master/assets/\$config;
+    for config in prometheus-static.yml prometheus-dns.yml prometheus-consul.yml; do
+      wget -O /etc/prometheus/$config https://raw.githubusercontent.com/olmoser/infracoders-reloaded/master/assets/$config;
     done
     mkdir /var/lib/prometheus && chown -R prometheus:prometheus /var/lib/prometheus
     wget -O /var/tmp/prometheus.tar.gz https://github.com/prometheus/prometheus/releases/download/v${prometheus_version}/prometheus-${prometheus_version}.linux-amd64.tar.gz 
@@ -62,15 +62,23 @@ installprom:
     WantedBy=multi-user.target
     EOF
     systemctl daemon-reload && systemctl start prometheus && systemctl enable prometheus
+
+installgrafana:    
+  - &install_grafana |
     wget -O /var/tmp/grafana.deb https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_${grafana_version}_amd64.deb
+    wget -O /var/tmp/dashboard-1.json https://raw.githubusercontent.com/olmoser/infracoders-reloaded/master/node_exporter_dashboard.json
+    wget -O /var/tmp/dashboard-2.json https://raw.githubusercontent.com/olmoser/infracoders-reloaded/master/prom_boot_dashboard.json
     apt-get install -y adduser libfontconfig
     dpkg -i /var/tmp/grafana.deb
     systemctl daemon-reload && systemctl start grafana-server && systemctl enable grafana-server
-    curl 'http://admin:admin@localhost:3000/api/datasources' \
-      -X POST \
-      -H 'Content-Type: application/json;charset=UTF-8' \
-      --data-binary \
-      '{"name":"prometheus","type":"prometheus","url":"http://localhost:9090","access":"proxy","isDefault":true}'
+    sleep 15
+    curl 'http://admin:admin@localhost:3000/api/datasources' -X POST -H 'Content-Type: application/json;charset=UTF-8' \
+      --data-binary '{"name":"prometheus","type":"prometheus","url":"http://localhost:9090","access":"proxy","isDefault":true}'
+
+    for file in dashboard-1.json dashboard-2.json; do
+       curl -i -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:3000/api/dashboards/db -d @/var/tmp/$file
+    done
+      
 
 installconsul:    
   - &install_consul |
@@ -105,6 +113,7 @@ runcmd:
   - systemctl restart sshd
   - [ sh, -c, *install_prom]
   - [ sh, -c, *install_consul]
+  - [ sh, -c, *install_grafana]
   - [ sh, -c, *notify_slack]
   - touch /tmp/done  
   

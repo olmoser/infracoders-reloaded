@@ -52,7 +52,7 @@ installpromboot:
 
     cat > /usr/local/bin/prom-boot-consul <<EOF
     sudo docker run -d \
-      -e SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID="prom-boot-$(hostname | cut -d '-' -f2,3)"
+      -e SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID="prom-boot-$(hostname | cut -d '-' -f2,3)" \
       -e SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME=$(hostname -f) \
       -e SERVER_PORT=18080 \
       -e SPRING_CLOUD_CONSUL_HOST=prom-master-0.prometheus.exokube.eu \

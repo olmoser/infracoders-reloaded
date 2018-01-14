@@ -1,4 +1,4 @@
-{"dashboard" : {
+{"dashboard" :{
   "__requires": [
     {
       "type": "grafana",
@@ -56,6 +56,8 @@
             "alignAsTable": true,
             "avg": true,
             "current": true,
+            "hideEmpty": true,
+            "hideZero": true,
             "max": true,
             "min": true,
             "show": true,
@@ -65,7 +67,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "nullPointMode": "null",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -80,7 +82,7 @@
               "expr": "requests_latency_summary_seconds{quantile=\"0.95\"}",
               "format": "time_series",
               "intervalFactor": 2,
-              "legendFormat": "",
+              "legendFormat": "{{instance}}",
               "refId": "A"
             }
           ],
@@ -132,6 +134,8 @@
             "alignAsTable": true,
             "avg": true,
             "current": true,
+            "hideEmpty": true,
+            "hideZero": true,
             "max": true,
             "min": true,
             "show": true,
@@ -141,7 +145,7 @@
           "lines": true,
           "linewidth": 1,
           "links": [],
-          "nullPointMode": "null",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -156,6 +160,7 @@
               "expr": "irate(errors_total[15m])\n\n",
               "format": "time_series",
               "intervalFactor": 2,
+              "legendFormat": "{{instance}}",
               "refId": "A"
             }
           ],
@@ -211,7 +216,7 @@
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {

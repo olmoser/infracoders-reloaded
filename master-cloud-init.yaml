@@ -105,7 +105,7 @@ installconsul:
 
 notifyslack:
   - &notify_slack |
-    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" ${slack_webhook}
+    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":checkered_flag:\"}" ${slack_webhook}
 
 runcmd:
   - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config

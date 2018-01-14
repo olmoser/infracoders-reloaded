@@ -47,6 +47,7 @@ installpromboot:
     cat > /usr/local/bin/prom-boot-dns <<EOF
     sudo docker run -d \
       -e SPRING_CLOUD_CONSUL_ENABLED=false \
+      --name "prom-boot-$(hostname | cut -d '-' -f2,3)-dns" \
       -p 8080:8080 omoser/prom-boot
     EOF
 
@@ -56,6 +57,7 @@ installpromboot:
       -e SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME=$(hostname -f) \
       -e SERVER_PORT=18080 \
       -e SPRING_CLOUD_CONSUL_HOST=prom-master-0.prometheus.exokube.eu \
+      --name "prom-boot-$(hostname | cut -d '-' -f2,3)-consul" \
       -p 18080:18080 omoser/prom-boot
     EOF
 
@@ -63,7 +65,7 @@ installpromboot:
 
 notifyslack:
   - &notify_slack |
-    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":thumbsup_all:\"}" ${slack_webhook}
+    curl -X POST --data-urlencode "payload={\"channel\": \"#demo-notify\", \"username\": \"terraform\", \"text\": \"Terraforming complete for node ${hostname}.\", \"icon_emoji\": \":checkered_flag:\"}" ${slack_webhook}
 
 runcmd:
   - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config

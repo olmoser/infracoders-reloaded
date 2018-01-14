@@ -56,6 +56,7 @@ installprom:
     ExecStart=/opt/prometheus/prometheus \
         --config.file /etc/prometheus/prometheus.yml \
         --storage.tsdb.path /var/lib/prometheus/ \
+        --log.level=debug \
         --web.enable-admin-api
 
     [Install]

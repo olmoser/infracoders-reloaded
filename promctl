@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+sd=$1
+action=$2
+value=$3
+
+domain=${DOMAIN:-prometheus.exokube.eu}
+
+if [ -z "$sd" ] || [ -z "$action" ]; then
+	echo "Usage: $0 <dns|consul> <run|kill|logs|error|sleep> [action-arg]";
+	exit 1;
+else
+	port=0
+	if [ "$sd" == "dns" ]; then
+		port=8080;
+	elif [ "$sd" == "consul" ]; then
+		port=18080;
+	else
+		echo "Unknown discovery mode: $sd";
+		exit 1;
+	fi
+
+	path="/api"
+	if [ "$action" == "error" ]; then
+		path="${path}/error"/${value};
+		action="curl http://prom-node-\${node_id}.${domain}:${port}${path} 2>/dev/null";
+	elif [ "$action" == "sleep" ]; then
+		path="${path}/sleep/${value}";
+		action="curl http://prom-node-\${node_id}.${domain}:${port}${path} 2>/dev/null";
+	elif [ "$action" == "run" ]; then
+		action="ssh \"prom-node-\${node_id}.${domain}\" prom-boot-$sd;"
+	elif [ "$action" == "kill" ]; then
+		action="ssh \"prom-node-\${node_id}.${domain}\" sudo docker kill prom-boot-node-\${node_id}-$sd;"
+	elif [ "$action" == "logs" ]; then
+		ssh prom-node-${value}.${domain} sudo docker logs -f prom-boot-node-${value}-$sd
+		exit 0;
+	else
+		echo "Unknown action: ${action}";
+		exit 1;
+	fi
+
+	for node_id in 0 1; do
+		result=$(eval $action)
+		echo "Result for node ${node_id}: ${result}"
+	done
+fi
+
+

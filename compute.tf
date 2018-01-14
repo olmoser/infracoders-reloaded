@@ -56,6 +56,10 @@ resource "exoscale_compute" "master" {
             "chmod 0600 /home/ubuntu/.ssh/id_rsa",
         ]
     }
+
+    provisioner "local-exec" {
+        command = "cat >> inventory <<EOL\n${self.ip_address}\nEOL"
+    }
 }
 
 resource "exoscale_compute" "nodes" {
@@ -89,7 +93,7 @@ resource "exoscale_compute" "nodes" {
     }
 
     provisioner "local-exec" {
-        command = "cat > inventory <<EOL\n[all]\n${self.ip_address}\nEOL"
+        command = "cat >> inventory <<EOL\n${self.ip_address}\nEOL"
     }
 }
 

@@ -38,28 +38,6 @@ resource "exoscale_compute" "master" {
     security_groups = ["sg-prometheus"]
     name = "prom-master-0"
     user_data = "${data.template_file.master.0.rendered}"
-    connection {
-        user = "ubuntu"
-        type = "ssh"
-        agent = false
-        host = "${self.ip_address}"
-        private_key = "${file(var.private_key_file)}"
-    }
-
-    provisioner "file" {
-        content = "${file(var.private_key_file)}"
-        destination = "/home/ubuntu/.ssh/id_rsa"
-    }
-
-    provisioner "remote-exec" {
-        inline = [
-            "chmod 0600 /home/ubuntu/.ssh/id_rsa",
-        ]
-    }
-
-    provisioner "local-exec" {
-        command = "cat >> inventory <<EOL\n${self.ip_address}\nEOL"
-    }
 }
 
 resource "exoscale_compute" "nodes" {
@@ -73,27 +51,4 @@ resource "exoscale_compute" "nodes" {
     security_groups = ["sg-prometheus"]
     name = "prom-node-${count.index}"
     user_data = "${element(data.template_file.nodes.*.rendered, count.index)}"
-    connection {
-        user = "ubuntu"
-        type = "ssh"
-        agent = false
-        host = "${self.ip_address}"
-        private_key = "${file(var.private_key_file)}"
-    }
-
-    provisioner "file" {
-        content = "${file(var.private_key_file)}"
-        destination = "/home/ubuntu/.ssh/id_rsa"
-    }
-
-    provisioner "remote-exec" {
-        inline = [
-            "chmod 0600 /home/ubuntu/.ssh/id_rsa",
-        ]
-    }
-
-    provisioner "local-exec" {
-        command = "cat >> inventory <<EOL\n${self.ip_address}\nEOL"
-    }
 }
-

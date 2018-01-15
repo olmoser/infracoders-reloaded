@@ -157,7 +157,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "irate(errors_total[15m])\n\n",
+              "expr": "irate(errors_total[5m])/irate(requests_total[5m])",
               "format": "time_series",
               "intervalFactor": 2,
               "legendFormat": "{{instance}}",

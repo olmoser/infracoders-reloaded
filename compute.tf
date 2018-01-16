@@ -36,7 +36,7 @@ resource "exoscale_compute" "master" {
     disk_size = 10
     key_pair = "prometheus-key"
     security_groups = ["sg-prometheus"]
-    name = "prom-master-0"
+    display_name = "prom-master-0"
     user_data = "${data.template_file.master.0.rendered}"
 }
 
@@ -49,6 +49,6 @@ resource "exoscale_compute" "nodes" {
     disk_size = 10
     key_pair = "prometheus-key"
     security_groups = ["sg-prometheus"]
-    name = "prom-node-${count.index}"
+    display_name = "prom-node-${count.index}"
     user_data = "${element(data.template_file.nodes.*.rendered, count.index)}"
 }
